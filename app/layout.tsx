@@ -1,5 +1,6 @@
 // import { Geist, Geist_Mono } from "next/font/google";
 import { Inter } from "next/font/google";
+import {ClerkProvider} from '@clerk/nextjs'
 import type { Metadata } from "next";
 import "./globals.css";
 import Header from "@/components/header";
@@ -27,16 +28,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="icon" href="/img/icon.png" sizes="512x512" />
-      </head>
-      <body
-        className={`${inter.className} `}
-      >
-        <Header />
-        <main className="min-h-screen">{children}</main>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <head>
+          <link rel="icon" href="/img/icon.png" sizes="512x512" />
+        </head>
+        <body className={`${inter.className} `}>
+          <Header />
+          <main className="min-h-screen">{children}</main>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
