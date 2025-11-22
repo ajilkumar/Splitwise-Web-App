@@ -12,3 +12,20 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id String @id @default(cuid())
+  clerkId String @unique
+  email String @unique
+  firstName String?
+  lastName String?
+  imageUrl String?
+
+  // Specific fields
+  totalBalance Decimal @default(0.00)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  
+}

@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function SignInPage() {
   return (
-    <div className="flex flex-col items-center justify-center w-full">
+    <div className="flex flex-col items-center justify-center w-full p-">
       <SignIn routing="path" path="/sign-in" />
 
       <div className="mt-6 text-center">
