@@ -1,8 +1,9 @@
 // import { Geist, Geist_Mono } from "next/font/google";
 import { Inter } from "next/font/google";
-import {ClerkProvider} from '@clerk/nextjs'
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import "./globals.css";
+import AuthSync from "@/components/AuthSync";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,6 +34,7 @@ export default function RootLayout({
           <link rel="icon" href="/img/icon.png" sizes="512x512" />
         </head>
         <body className={`${inter.className} `}>
+          <AuthSync />
           <main className="min-h-screen">{children}</main>
         </body>
       </html>
