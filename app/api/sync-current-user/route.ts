@@ -1,7 +1,7 @@
 // app/api/sync-current-user/route.ts
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Upsert the currently-signed-in Clerk user into your Supabase DB via Prisma.
