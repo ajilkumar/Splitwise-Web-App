@@ -4,8 +4,9 @@ import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Upsert the currently-signed-in Clerk user into your Supabase DB via Prisma.
+ * Upsert the currently-signed-in Clerk user into your DB via Prisma.
  * - Uses clerkId as canonical reference.
+ * - Acts as a fallback if webhooks fail or for immediate sync.
  */
 export async function POST() {
   const u = await currentUser();
@@ -15,12 +16,8 @@ export async function POST() {
       { status: 401 }
     );
   }
-  //   console.log('User from clerk: ',u) // debug log
-  //   console.log('User Email ID from clerk: ',u.emailAddresses) // debug log
-  //   console.log('User Primary Email ID from clerk: ',u.primaryEmailAddress) // debug log
-  // //   console.log('User Primary Email ID from clerk: ',u.email) // debug log
 
-  // Normalize email selection depending on Clerk SDK version
+  // Normalize email selection
   const email =
     u.emailAddresses?.[0]?.emailAddress ??
     u.primaryEmailAddress?.emailAddress ??
