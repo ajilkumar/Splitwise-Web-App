@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createGroupSchema } from "@/lib/validations/group";
 import { apiHandler } from "@/lib/api/server";
 import { ApiError } from "@/lib/api/error";
+import { ApiResponse } from "@/lib/api/response";
 
 // Create a new group
 export const POST = apiHandler(async (req: Request) => {
@@ -55,11 +57,11 @@ export const POST = apiHandler(async (req: Request) => {
     },
   });
 
-  return group;
+  return new ApiResponse(200, group, "Group created successfully");
 });
 
 // Get all groups for the current user
-export const GET = apiHandler(async (req: Request) => {
+export const GET = apiHandler(async (_req: Request) => {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -87,5 +89,5 @@ export const GET = apiHandler(async (req: Request) => {
     },
   });
 
-  return groups;
+  return new ApiResponse(200, groups, "Groups fetched successfully");
 });

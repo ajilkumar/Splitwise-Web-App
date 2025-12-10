@@ -1,22 +1,28 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { ApiError } from "./error";
 import { ApiResponse } from "./response";
 import { z } from "zod";
 
-type ApiHandler = (req: Request) => Promise<unknown>;
+type ApiHandler = (req: Request, ...args: any[]) => Promise<unknown>;
 
 export function apiHandler(handler: ApiHandler) {
-  return async (req: Request) => {
+  return async (req: Request, ...args: any[]) => {
     try {
       // Run the actual route logic
-      const result = await handler(req);
+      const result = await handler(req, ...args);
 
-      // If the result is already a Response object (like a redirect), return it as is
+      // If the result is a raw Response (like a redirect), return as is
       if (result instanceof Response) {
         return result;
       }
 
-      // Otherwise, wrap the result in our standard success response
+      // If the result is already an ApiResponse, return it as JSON
+      if (result instanceof ApiResponse) {
+        return NextResponse.json(result, { status: result.statusCode });
+      }
+
+      // Otherwise, wrap the raw data in a default success response
       return NextResponse.json(
         new ApiResponse(200, result, "Success")
       );
@@ -43,7 +49,7 @@ export function apiHandler(handler: ApiHandler) {
             statusCode: 422,
             message: "Validation Error",
             success: false,
-            errors: error.errors,
+            errors: error.issues,
           },
           { status: 422 }
         );

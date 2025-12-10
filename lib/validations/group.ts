@@ -7,4 +7,9 @@ export const createGroupSchema = z.object({
   members: z.array(z.string().email("Invalid email address")).optional(), // Array of emails to invite
 });
 
+export const addMembersSchema = z.object({
+  members: z.array(z.string().email("Invalid email address")).min(1, "At least one member is required"),
+});
+
 export type CreateGroupInput = z.infer<typeof createGroupSchema>;
+export type AddMembersInput = z.infer<typeof addMembersSchema>;
