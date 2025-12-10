@@ -5,7 +5,7 @@ export const createExpenseSchema = z
     description: z.string().min(1, "Description is required"),
     amount: z.coerce.number().positive("Amount must be positive"),
     category: z.string().default("General"),
-    date: z.date().pipe(z.date().refine((date) => date instanceof Date, { message: "Date is required" })),
+    date: z.coerce.date(),
     groupId: z.string().optional(),
     splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SHARES"]),
     splits: z
