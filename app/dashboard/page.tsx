@@ -22,6 +22,8 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
+  // console.log(`Signed in user: `, user) // debug log
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">

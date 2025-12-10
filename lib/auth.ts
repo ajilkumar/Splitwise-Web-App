@@ -2,17 +2,21 @@ import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 export async function getCurrentUser() {
-  const user = await currentUser();
+  // --- DEV TESTING BYPASS (Uncomment to test APIs in Hoppscotch without Cookies) ---
+  return await prisma.user.findFirst(); // Returns the first user in DB
+  // ---------------------------------------------------------------------------------
 
-  if (!user) {
-    return null;
-  }
+  // const user = await currentUser();
 
-  const dbUser = await prisma.user.findUnique({
-    where: {
-      clerkId: user.id,
-    },
-  });
+  // if (!user) {
+  //   return null;
+  // }
 
-  return dbUser;
+  // const dbUser = await prisma.user.findUnique({
+  //   where: {
+  //     clerkId: user.id,
+  //   },
+  // });
+
+  // return dbUser;
 }
