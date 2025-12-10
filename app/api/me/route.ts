@@ -9,6 +9,8 @@ export async function GET() {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // console.log(`User: `, user) // debug log
+
     return NextResponse.json(user);
   } catch (error) {
     console.error("[ME_GET]", error);
