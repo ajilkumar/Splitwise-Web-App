@@ -4,6 +4,7 @@ import { respondToFriendRequestSchema } from "@/lib/validations/friend";
 import { apiHandler } from "@/lib/api/server";
 import { ApiError } from "@/lib/api/error";
 import { ApiResponse } from "@/lib/api/response";
+import { logActivity } from "@/lib/activity";
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await getCurrentUser();
@@ -17,6 +18,7 @@ export const POST = apiHandler(async (req: Request) => {
 
   const friendship = await prisma.friendship.findUnique({
     where: { id: body.requestId },
+    include: { requester: true },
   });
 
   if (!friendship) {
@@ -37,7 +39,17 @@ export const POST = apiHandler(async (req: Request) => {
   const updatedFriendship = await prisma.friendship.update({
     where: { id: body.requestId },
     data: { status: newStatus },
+    include: { requester: true },
   });
+
+  if (newStatus === "ACCEPTED") {
+    await logActivity({
+      type: "FRIEND_REQUEST_ACCEPTED",
+      message: `You accepted ${updatedFriendship.requester?.firstName || "a"} friend request`,
+      userId: user.id,
+      relatedId: updatedFriendship.requesterId,
+    });
+  }
 
   return new ApiResponse(
     200,
