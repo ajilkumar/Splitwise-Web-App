@@ -33,6 +33,14 @@ export const createExpenseSchema = z
         );
         return Math.abs(totalPercent - 100) < 0.01;
       }
+      if (data.splitType === "SHARES") {
+        // For shares, just ensure total shares > 0
+        const totalShares = data.splits.reduce(
+          (sum, split) => sum + split.amount,
+          0
+        );
+        return totalShares > 0;
+      }
       return true;
     },
     {
