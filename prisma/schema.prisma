@@ -34,6 +34,10 @@ model User {
   settlementsPaid     Settlement[]  @relation("SettlementsPaid")
   settlementsReceived Settlement[]  @relation("SettlementsReceived")
   settlementsCreated  Settlement[]  @relation("SettlementCreatedBy")
+
+  // Friendships
+  sentFriendRequests     Friendship[]  @relation("SentFriendRequests")
+  receivedFriendRequests Friendship[]  @relation("ReceivedFriendRequests")
 }
 
 enum SplitType {
@@ -148,4 +152,27 @@ model Settlement {
   @@index([paidByUserId])
   @@index([receivedByUserId])
   @@index([date])
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+model Friendship {
+  id          String           @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  requester User @relation("SentFriendRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("ReceivedFriendRequests", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId])
+  @@index([addresseeId])
 }
