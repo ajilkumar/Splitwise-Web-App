@@ -49,7 +49,11 @@ export const GET = apiHandler(async (_req: Request) => {
     const friend = isRequester ? f.addressee : f.requester;
     return {
       friendshipId: f.id,
-      ...friend,
+      id: friend.id,
+      firstName: friend.firstName,
+      lastName: friend.lastName,
+      email: friend.email,
+      imageUrl: friend.imageUrl,
     };
   });
 

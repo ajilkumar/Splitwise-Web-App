@@ -4,6 +4,7 @@ import { inviteFriendSchema } from "@/lib/validations/friend";
 import { apiHandler } from "@/lib/api/server";
 import { ApiError } from "@/lib/api/error";
 import { ApiResponse } from "@/lib/api/response";
+import { logActivity } from "@/lib/activity";
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await getCurrentUser();
@@ -56,6 +57,13 @@ export const POST = apiHandler(async (req: Request) => {
       addresseeId: foundUser.id,
       status: "PENDING",
     },
+  });
+
+  await logActivity({
+    type: "FRIEND_REQUEST_SENT",
+    message: `You sent a friend request to ${foundUser.firstName || foundUser.email}`,
+    userId: user.id,
+    relatedId: foundUser.id,
   });
 
   return new ApiResponse(201, friendship, "Friend request sent successfully");
