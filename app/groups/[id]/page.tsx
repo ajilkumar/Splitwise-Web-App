@@ -1,0 +1,179 @@
+
+import { auth } from "@clerk/nextjs/server";
+import { redirect, notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ActivityItem } from "@/components/dashboard/ActivityItem"; // Reuse for expenses list? 
+// Actually ActivityItem is for Activity feed. We might need a generic ExpenseItem or reuse basic structure.
+// Let's create a specialized inline list for expenses.
+import { formatCurrency } from "@/lib/utils";
+import { Calendar, User as UserIcon } from "lucide-react";
+import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog"; // Can we reuse?
+
+// Reuse AddExpenseDialog but we might need to pre-fill groupId. 
+// The current AddExpenseDialog doesn't accept groupId. We should update it or pass it via props?
+// Wait, the schema supports groupId. The Dialog accepts userId.
+// Let's stick to basic view first, and maybe add "Add Group Expense" later or update the dialog in next step.
+
+export default async function GroupDetailPage({ params }: { params: { id: string } }) {
+  const { userId: clerkId } = await auth();
+  if (!clerkId) redirect("/");
+
+  const user = await prisma.user.findUnique({ where: { clerkId } });
+  if (!user) redirect("/");
+
+  const group = await prisma.group.findUnique({
+    where: { id: params.id },
+    include: {
+      members: {
+        include: {
+          user: true,
+        },
+      },
+      expenses: {
+        include: {
+          paidByUser: true,
+          splits: {
+             include: { user: true }
+          }
+        },
+        orderBy: { date: 'desc' }
+      },
+    },
+  });
+
+  if (!group) {
+    notFound();
+  }
+
+  // Security check: Is user a member?
+  const isMember = group.members.some(m => m.userId === user.id);
+  if (!isMember) {
+     redirect("/groups");
+  }
+
+  // Calculate total group spend
+  const totalSpend = group.expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+
+  return (
+    <div className="space-y-8">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-xl border bg-background shadow">
+        <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-blue-500/10" />
+        <div className="relative px-8 py-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+             <div className="space-y-2">
+                <Badge variant="outline" className="w-fit bg-background/50 backdrop-blur">Group</Badge>
+                <h1 className="text-4xl font-bold tracking-tight">{group.name}</h1>
+                <div className="flex items-center gap-4 text-muted-foreground">
+                   <div className="flex items-center gap-1">
+                      <UserIcon className="h-4 w-4" />
+                      <span>{group.members.length} members</span>
+                   </div>
+                   <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      <span>Created {group.createdAt.toLocaleDateString()}</span>
+                   </div>
+                </div>
+             </div>
+             
+             <div className="flex flex-col items-end gap-2">
+                 <div className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Total Spend</div>
+                 <div className="text-3xl font-bold">{formatCurrency(totalSpend)}</div>
+                 {/* <Button size="sm">Settings</Button> */}
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="expenses" className="w-full">
+        <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent space-x-6">
+          <TabsTrigger 
+            value="expenses" 
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none py-3 px-1"
+          >
+            Expenses
+          </TabsTrigger>
+          <TabsTrigger 
+            value="members"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none py-3 px-1"
+          >
+            Members
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="expenses" className="pt-6">
+           <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                 <div>
+                    <CardTitle>Group Expenses</CardTitle>
+                    <CardDescription>All transactions in this group.</CardDescription>
+                 </div>
+                 <AddExpenseDialog userId={user.id} groupId={group.id} />
+              </CardHeader>
+              <CardContent>
+                 {group.expenses.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                        <p>No expenses yet.</p>
+                    </div>
+                 ) : (
+                    <div className="space-y-6">
+                       {group.expenses.map(expense => (
+                          <div key={expense.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                             <div className="flex items-start gap-4">
+                                <div className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-muted text-xs font-medium text-muted-foreground">
+                                   <span>{expense.date.toLocaleString('default', { month: 'short' })}</span>
+                                   <span className="text-lg text-foreground">{expense.date.getDate()}</span>
+                                </div>
+                                <div className="space-y-1">
+                                   <p className="font-medium text-base">{expense.description}</p>
+                                   <p className="text-sm text-muted-foreground">
+                                      Paid by <span className="font-medium text-foreground">{expense.paidByUser.firstName}</span>
+                                   </p>
+                                </div>
+                             </div>
+                             <div className="text-right">
+                                <div className="font-bold text-lg">{formatCurrency(Number(expense.amount))}</div>
+                                <div className="text-xs text-muted-foreground">
+                                   {expense.splits.length} people involved
+                                </div>
+                             </div>
+                          </div>
+                       ))}
+                    </div>
+                 )}
+              </CardContent>
+           </Card>
+        </TabsContent>
+
+        <TabsContent value="members" className="pt-6">
+           <Card>
+              <CardHeader>
+                 <CardTitle>Members</CardTitle>
+                 <CardDescription>People in this group.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {group.members.map(member => (
+                       <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card/50">
+                          <Avatar className="h-10 w-10">
+                             <AvatarImage src={member.user.imageUrl || ""} />
+                             <AvatarFallback>{member.user.firstName?.[0]}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                             <p className="font-medium">{member.user.firstName} {member.user.lastName}</p>
+                             <p className="text-xs text-muted-foreground">{member.role}</p>
+                          </div>
+                       </div>
+                    ))}
+                 </div>
+              </CardContent>
+           </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
