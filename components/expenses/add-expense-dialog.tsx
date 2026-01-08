@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
@@ -31,51 +31,55 @@ import {
   CreateExpenseInput,
 } from "@/lib/validations/expense";
 
+import { FriendSelector } from "./friend-selector";
+import { SplitAllocator } from "./split-allocator";
+
 interface AddExpenseDialogProps {
   userId: string;
 }
 
 export function AddExpenseDialog({ userId }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
-  const form = useForm({
+  // Using 'any' for friend objects to avoid strict implementation detail dependency here
+  const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
+  
+  const form = useForm<CreateExpenseInput>({
     resolver: zodResolver(createExpenseSchema),
     defaultValues: {
       description: "",
       amount: 0,
       category: "General",
       date: new Date(),
-      splitType: "EQUAL" as const,
-      splits: [{ userId, amount: 0 }], // Default split for current user
+      splitType: "EQUAL", // Type inference handles the union if compatible
+      splits: [],
     },
   });
 
+  const amount = form.watch("amount");
+  const splitType = form.watch("splitType");
+
+  // Mock current user object for the allocator
+  const currentUser = { id: userId, firstName: "You", lastName: "", imageUrl: null, email: "" };
+  const allParticipants = [currentUser, ...selectedFriends];
+
+  // Auto-update splits when participants or amount change (for EQUAL default)
+  useEffect(() => {
+    // Only auto-calculate if type is EQUAL
+    if (splitType === "EQUAL" && amount > 0) {
+       const splitAmount = amount / allParticipants.length;
+       const splits = allParticipants.map(u => ({ userId: u.id, amount: splitAmount }));
+       form.setValue("splits", splits);
+    }
+  }, [amount, selectedFriends.length, splitType, form]); // eslint-disable-line
+
   async function onSubmit(data: CreateExpenseInput) {
-    // For now, since we don't have a UI to select users for splits,
-    // we'll just mock a split for the current user (or handle it in backend if empty? No schema requires min 1)
-    // Wait, schema requires min 1 split.
-    // I need to fetch friends/users to split with.
-    // For this MVP step, maybe I just add a dummy split for the current user?
-    // Or I should probably just let the user enter the amount and description, and I'll handle the split logic in the backend if splits are empty?
-    // But the schema enforces splits.
-
-    // Let's temporarily modify the schema or just add a "self" split here if the UI doesn't support it yet.
-    // But I should probably implement a basic split UI or at least a "Paid by you, split equally" default.
-
-    // For this specific task, I'll just add a dummy split to satisfy the schema
-    // In a real app, I'd fetch the current user ID.
-    // Since I don't have the user ID easily here without a provider, I might need to pass it in or fetch it.
-    // Actually, I can't easily get the user ID in a client component without passing it down or using a hook.
-    // Let's assume for now we just want to test the modal opening and basic form.
-
-    // I'll wrap the server action call.
-
     try {
-      // Mocking a split for now to pass validation if the UI doesn't populate it
-      // This will fail on the server if the user ID is invalid.
-      // I'll need to implement the user selection for splits.
-      // But for "Add Expense" button, maybe just description and amount first?
+      // Ensure splits are set properly if they weren't auto-calculated
+      if ((!data.splits || data.splits.length === 0) && allParticipants.length > 0) {
+          const splitAmount = data.amount / allParticipants.length;
+          data.splits = allParticipants.map(u => ({ userId: u.id, amount: splitAmount }));
+      }
 
-      // Let's just try to submit what we have.
       const result = await createExpense(data);
       if (result.error) {
         toast.error("Failed to create expense");
@@ -83,10 +87,10 @@ export function AddExpenseDialog({ userId }: AddExpenseDialogProps) {
         toast.success("Expense added!");
         setOpen(false);
         form.reset();
+        setSelectedFriends([]);
       }
     } catch (error) {
       toast.error("Something went wrong");
-      console.error("Something went wrong", error);
     }
   }
 
@@ -97,7 +101,7 @@ export function AddExpenseDialog({ userId }: AddExpenseDialogProps) {
           <Plus className="mr-2 h-4 w-4" /> Add Expense
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add Expense</DialogTitle>
           <DialogDescription>Add a new expense to track.</DialogDescription>
@@ -117,26 +121,67 @@ export function AddExpenseDialog({ userId }: AddExpenseDialogProps) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="0.00"
-                      {...field}
-                      value={field.value as number}
+            
+            <div className="flex space-x-4">
+                <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                    <FormItem className="flex-1">
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                        <Input
+                        type="number"
+                        placeholder="0.00"
+                        {...field}
+                        value={field.value || ""} 
+                        onChange={e => field.onChange(parseFloat(e.target.value))}
+                        />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                        <FormItem className="flex-1">
+                        <FormLabel>Category</FormLabel>
+                        <FormControl>
+                            <Input placeholder="General" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
+            <div className="space-y-2">
+                <FormLabel>With whom?</FormLabel>
+                <FriendSelector 
+                    currentUserId={userId}
+                    selectedUsers={selectedFriends} 
+                    onSelect={setSelectedFriends} 
+                />
+            </div>
+
+            {/* Only show split allocator if amount > 0 and we have friends to split with */}
+            {amount > 0 && selectedFriends.length > 0 && (
+                <div className="rounded-md border p-4 bg-muted/50">
+                    <FormLabel className="mb-2 block">Split Distribution</FormLabel>
+                    <SplitAllocator 
+                        amount={amount}
+                        users={allParticipants}
+                        splitType={splitType}
+                        paidByUserId={userId}
+                        onChange={(splits) => form.setValue("splits", splits)}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                </div>
+            )}
+
             <DialogFooter>
-              <Button type="submit">Save</Button>
+              <Button type="submit">Save Expense</Button>
             </DialogFooter>
           </form>
         </Form>
