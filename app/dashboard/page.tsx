@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { prisma } from "@/lib/prisma";
 import { getDashboardMetrics } from "@/lib/services/dashboard";
+import { AddFriendDialog } from "@/components/friends/add-friend-dialog";
+import { DashboardFriendsWidget } from "@/components/dashboard/DashboardFriendsWidget";
 import { SummaryCard } from "@/components/dashboard/SummaryCard";
 import { ActivityList } from "@/components/dashboard/ActivityList";
 import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
@@ -61,6 +63,28 @@ export default async function DashboardPage() {
     take: 20,
   });
 
+  // Fetch Friends for Widget
+  const friendships = await prisma.friendship.findMany({
+    where: {
+      status: "ACCEPTED",
+      OR: [{ requesterId: user.id }, { addresseeId: user.id }],
+    },
+    include: {
+      requester: true,
+      addressee: true,
+    },
+    take: 5,
+  });
+
+  const friends = friendships.map((f) => {
+    const isRequester = f.requesterId === user.id;
+    const friend = isRequester ? f.addressee : f.requester;
+    return {
+      friendshipId: f.id,
+      ...friend,
+    };
+  });
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -70,7 +94,10 @@ export default async function DashboardPage() {
             Welcome back, {user.firstName || "Friend"}!
           </p>
         </div>
-        <AddExpenseDialog userId={user.id} />
+        <div className="flex space-x-2">
+            <AddFriendDialog />
+            <AddExpenseDialog userId={user.id} />
+        </div>
       </div>
 
       {/* Metrics Row */}
@@ -104,7 +131,7 @@ export default async function DashboardPage() {
         
         {/* Placeholder for future Quick Actions or charts */}
         <div className="hidden lg:block lg:col-span-1 space-y-4">
-            {/* Could add a 'Quick Add' friend widget here later */}
+            <DashboardFriendsWidget friends={friends} />
         </div>
       </div>
     </div>

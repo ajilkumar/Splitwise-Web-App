@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const Header = () => {
   const path = usePathname();
@@ -54,14 +55,20 @@ const Header = () => {
             <>
               <Link href="/dashboard">
                 <Button
-                  variant="outline"
-                  className="hidden md:inline-flex items-center gap-2 hover:text-green-600 hover:border-green-600 transition"
+                  variant="ghost"
+                  className={cn("hidden md:inline-flex items-center gap-2 transition", path === "/dashboard" ? "bg-accent" : "")}
                 >
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
                 </Button>
-                <Button variant="ghost" className="md:hidden w-10 h-10 p-0">
-                  <LayoutDashboard className="h-4 w-4" />
+              </Link>
+              <Link href="/friends">
+                 <Button
+                  variant="ghost"
+                  className={cn("hidden md:inline-flex items-center gap-2 transition", path === "/friends" ? "bg-accent" : "")}
+                >
+                  <Users className="h-4 w-4" />
+                  Friends
                 </Button>
               </Link>
               {/* <Avatar>
