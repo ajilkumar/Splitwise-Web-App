@@ -62,6 +62,15 @@ const Header = () => {
                   Dashboard
                 </Button>
               </Link>
+              <Link href="/groups">
+                 <Button
+                  variant="ghost"
+                  className={cn("hidden md:inline-flex items-center gap-2 transition", path === "/groups" ? "bg-accent" : "")}
+                >
+                  <Users className="h-4 w-4" />
+                  Groups
+                </Button>
+              </Link>
               <Link href="/friends">
                  <Button
                   variant="ghost"

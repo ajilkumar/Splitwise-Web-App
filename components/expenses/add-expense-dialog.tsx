@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod"; // Add zod import if needed for types
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,45 +37,52 @@ import { SplitAllocator } from "./split-allocator";
 
 interface AddExpenseDialogProps {
   userId: string;
+  groupId?: string;
 }
 
-export function AddExpenseDialog({ userId }: AddExpenseDialogProps) {
+export function AddExpenseDialog({ userId, groupId }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   // Using 'any' for friend objects to avoid strict implementation detail dependency here
   const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
   
+  // Explicitly cast resolver to avoiding deep generic mismatch with z.coerce
   const form = useForm<CreateExpenseInput>({
-    resolver: zodResolver(createExpenseSchema),
+    resolver: zodResolver(createExpenseSchema) as any,
     defaultValues: {
       description: "",
       amount: 0,
       category: "General",
       date: new Date(),
-      splitType: "EQUAL", // Type inference handles the union if compatible
+      splitType: "EQUAL",
       splits: [],
+      groupId: groupId, 
     },
   });
+
+  // Watch for external groupId changes to update form default
+  useEffect(() => {
+    if (groupId) {
+        form.setValue("groupId", groupId);
+    }
+  }, [groupId, form]);
 
   const amount = form.watch("amount");
   const splitType = form.watch("splitType");
 
-  // Mock current user object for the allocator
   const currentUser = { id: userId, firstName: "You", lastName: "", imageUrl: null, email: "" };
   const allParticipants = [currentUser, ...selectedFriends];
 
   // Auto-update splits when participants or amount change (for EQUAL default)
   useEffect(() => {
-    // Only auto-calculate if type is EQUAL
     if (splitType === "EQUAL" && amount > 0) {
        const splitAmount = amount / allParticipants.length;
        const splits = allParticipants.map(u => ({ userId: u.id, amount: splitAmount }));
        form.setValue("splits", splits);
     }
-  }, [amount, selectedFriends.length, splitType, form]); // eslint-disable-line
+  }, [amount, selectedFriends.length, splitType, form, allParticipants.length]); // added allParticipants.length
 
   async function onSubmit(data: CreateExpenseInput) {
     try {
-      // Ensure splits are set properly if they weren't auto-calculated
       if ((!data.splits || data.splits.length === 0) && allParticipants.length > 0) {
           const splitAmount = data.amount / allParticipants.length;
           data.splits = allParticipants.map(u => ({ userId: u.id, amount: splitAmount }));
@@ -86,7 +94,15 @@ export function AddExpenseDialog({ userId }: AddExpenseDialogProps) {
       } else {
         toast.success("Expense added!");
         setOpen(false);
-        form.reset();
+        form.reset({
+            description: "",
+            amount: 0,
+            category: "General",
+            date: new Date(),
+            splitType: "EQUAL",
+            splits: [],
+            groupId: groupId, // Retain group ID on reset
+        });
         setSelectedFriends([]);
       }
     } catch (error) {
@@ -166,7 +182,6 @@ export function AddExpenseDialog({ userId }: AddExpenseDialogProps) {
                 />
             </div>
 
-            {/* Only show split allocator if amount > 0 and we have friends to split with */}
             {amount > 0 && selectedFriends.length > 0 && (
                 <div className="rounded-md border p-4 bg-muted/50">
                     <FormLabel className="mb-2 block">Split Distribution</FormLabel>
