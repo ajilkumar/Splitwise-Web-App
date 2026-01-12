@@ -2,8 +2,9 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import {prisma} from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { createExpenseSchema, CreateExpenseInput } from "@/lib/validations/expense";
+import { logActivity } from "@/lib/activity";
 
 export async function createExpense(data: CreateExpenseInput) {
   const { userId: clerkId } = await auth();
@@ -40,7 +41,7 @@ export async function createExpense(data: CreateExpenseInput) {
           date,
           groupId,
           splitType,
-          paidByUserId: user.id, // Defaulting to current user for now
+          paidByUserId: user.id, // Paying user is creator for now (unless specified differently in future)
           createdByUserId: user.id,
           splits: {
             create: splits.map((split) => ({
@@ -51,7 +52,19 @@ export async function createExpense(data: CreateExpenseInput) {
         },
       });
 
+      // Future: Update balances here via logic similar to settlements if using a ledger system
+      // For now, balances are calculated on-the-fly or updated via settlements.
+      
       return newExpense;
+    });
+
+    // Add Activity Logging
+    await logActivity({
+      type: "EXPENSE_CREATED",
+      message: `You added "${expense.description}"`,
+      userId: user.id,
+      groupId: expense.groupId || undefined,
+      relatedId: expense.id,
     });
 
     revalidatePath("/dashboard");
