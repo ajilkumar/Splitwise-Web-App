@@ -1,7 +1,9 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "lucide-react";
+import { User, Wallet } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { SettleUpDialog } from "@/components/settlements/settle-up-dialog";
 
 interface Friend {
   friendshipId: string;
@@ -10,6 +12,7 @@ interface Friend {
   lastName: string | null;
   email: string;
   imageUrl: string | null;
+  balance?: number; // Optional balance field
 }
 
 interface FriendsListProps {
@@ -32,19 +35,34 @@ export function FriendsList({ friends }: FriendsListProps) {
       {friends.map((friend) => (
         <div 
           key={friend.id} 
-          className="flex items-center space-x-4 rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow"
+          className="flex flex-col space-y-3 rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow"
         >
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={friend.imageUrl || ""} alt={friend.firstName || ""} />
-            <AvatarFallback>{friend.firstName?.[0] || friend.email[0]}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium leading-none">
-              {friend.firstName} {friend.lastName}
-            </p>
-            <p className="text-xs text-muted-foreground">{friend.email}</p>
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={friend.imageUrl || ""} alt={friend.firstName || ""} />
+              <AvatarFallback>{friend.firstName?.[0] || friend.email[0]}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-medium leading-none">
+                {friend.firstName} {friend.lastName}
+              </p>
+              <p className="text-xs text-muted-foreground">{friend.email}</p>
+            </div>
           </div>
-          {/* Future: Add Balance status here (e.g. "Owes you $10") */}
+          
+          <div className="flex items-center justify-between pt-2 border-t mt-2">
+             <div className="text-sm">
+                {friend.balance !== undefined && friend.balance !== 0 && (
+                   <span className={friend.balance > 0 ? "text-green-600 font-medium" : "text-red-500 font-medium"}>
+                     {friend.balance > 0 ? "owes you" : "you owe"} {formatCurrency(Math.abs(friend.balance))}
+                   </span>
+                )}
+                {(friend.balance === undefined || friend.balance === 0) && (
+                    <span className="text-muted-foreground text-xs">Settled up</span>
+                )}
+             </div>
+             {/* If we had UserId we could add Settle Up button here easily */}
+          </div>
         </div>
       ))}
     </div>
