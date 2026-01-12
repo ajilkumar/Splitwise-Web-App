@@ -103,3 +103,61 @@ export async function calculateGroupBalances(groupId: string) {
 
   return debts;
 }
+
+export async function calculateFriendBalance(userId: string, friendId: string) {
+  // 1. Expenses: What does this friend owe me? (I paid, they split)
+  const credits = await prisma.split.findMany({
+    where: {
+      userId: friendId, // They are the split target
+      expense: {
+        paidByUserId: userId, // I paid
+      },
+    },
+  });
+
+  // 2. Expenses: What do I owe this friend? (They paid, I split)
+  const debts = await prisma.split.findMany({
+    where: {
+      userId: userId, // I am the split target
+      expense: {
+        paidByUserId: friendId, // They paid
+      },
+    },
+  });
+
+  // 3. Settlements: Money flow
+  const settlementsGiven = await prisma.settlement.findMany({
+      where: {
+          paidByUserId: userId,
+          receivedByUserId: friendId
+      }
+  });
+
+  const settlementsReceived = await prisma.settlement.findMany({
+    where: {
+        paidByUserId: friendId,
+        receivedByUserId: userId
+    }
+  });
+
+  const totalCredits = credits.reduce((sum, s) => sum + Number(s.amount), 0);
+  const totalDebts = debts.reduce((sum, s) => sum + Number(s.amount), 0);
+  
+  const totalSettledGiven = settlementsGiven.reduce((sum, s) => sum + Number(s.amount), 0);
+  const totalSettledReceived = settlementsReceived.reduce((sum, s) => sum + Number(s.amount), 0);
+
+  // Net Balance Calculation
+  // (+ I paid for them) - (- They paid for me) + (+ I paid them cash [reduces my debt]) - (- They paid me cash [reduces their debt])
+  // Wait.
+  // Net positive = They owe me.
+  // Credits (Validation): I paid $50 expense for them. Net = +50. Correct.
+  // Debts (Validation): They paid $50 expense for me. Net = -50. Correct.
+  // Settlement (Given): I owed $50. I paid $50. Net should be 0.
+  //   Equation: (0) - (50) + (50) - (0) = 0. Correct.
+  // Settlement (Received): They owed $50. They paid $50. Net should be 0.
+  //   Equation: (50) - (0) + (0) - (50) = 0. Correct.
+
+  const netBalance = (totalCredits - totalDebts) + (totalSettledGiven - totalSettledReceived);
+
+  return netBalance;
+}

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AddFriendDialog } from "@/components/friends/add-friend-dialog";
 import { FriendRequestsList } from "@/components/friends/friend-requests-list";
 import { FriendsList } from "@/components/friends/friends-list";
+import { calculateFriendBalance } from "@/lib/services/balance";
 
 export default async function FriendsPage() {
   const { userId: clerkId } = await auth();
@@ -23,7 +24,6 @@ export default async function FriendsPage() {
   }
 
   // 1. Fetch Accepted Friends
-  // We can reuse the logic from GET /api/friends or just query directly since this is a server component
   const friendships = await prisma.friendship.findMany({
     where: {
       status: "ACCEPTED",
@@ -35,14 +35,18 @@ export default async function FriendsPage() {
     },
   });
 
-  const friends = friendships.map((f) => {
+  // Calculate balances for each friend
+  const friends = await Promise.all(friendships.map(async (f) => {
     const isRequester = f.requesterId === user.id;
     const friend = isRequester ? f.addressee : f.requester;
+    const balance = await calculateFriendBalance(user.id, friend.id);
+    
     return {
       friendshipId: f.id,
       ...friend,
+      balance, // Pass balance to client component
     };
-  });
+  }));
 
   // 2. Fetch Pending Requests
   const pendingRequests = await prisma.friendship.findMany({
@@ -76,7 +80,7 @@ export default async function FriendsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Friends</h1>
           <p className="text-muted-foreground">Manage your friendships and requests.</p>
         </div>
-        <AddFriendDialog />
+        <AddFriendDialog userId={user.id} />
       </div>
 
       <Tabs defaultValue="friends" className="w-full">
@@ -99,6 +103,7 @@ export default async function FriendsPage() {
               <CardDescription>People you share expenses with.</CardDescription>
             </CardHeader>
             <CardContent>
+              {/* @ts-ignore - We are extending the friend type on the fly */}
               <FriendsList friends={friends} />
             </CardContent>
           </Card>
