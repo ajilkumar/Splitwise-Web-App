@@ -1,55 +1,42 @@
-// import { PrismaClient } from './generated/prisma/client'
-// import { PrismaPg } from '@prisma/adapter-pg'
-// import { Pool, PoolConfig } from 'pg'
-
-// const globalForPrisma = global as unknown as { prisma: PrismaClient }
-
-// const connectionString = process.env.DATABASE_URL
-
-// if (!connectionString) {
-//   throw new Error('DATABASE_URL is not set')
-// }
-
-// const normalizeCertificate = (cert?: string) =>
-//   cert?.replace(/\\n/g, '\n').trim()
-
-// const shouldAllowSelfSigned =
-//   process.env.DATABASE_SSL_ALLOW_SELFSIGNED === 'true' ||
-//   process.env.NODE_ENV !== 'production'
-
-// const customCa = normalizeCertificate(process.env.DATABASE_SSL_CA)
-
-// const ssl: PoolConfig['ssl'] =
-//   connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
-//     ? false
-//     : customCa
-//       ? { ca: customCa }
-//       : shouldAllowSelfSigned
-//         ? { rejectUnauthorized: false }
-//         : true
-
-// const pool = new Pool({
-//   connectionString,
-//   ssl,
-// })
-
-// const adapter = new PrismaPg(pool)
-
-// const prisma = globalForPrisma.prisma || new PrismaClient({ adapter })
-
-// if (process.env.NODE_ENV !== 'production') {
-//   globalForPrisma.prisma = prisma
-// }
-
-// export default prisma
-
-import "dotenv/config";
+import { Pool, PoolConfig } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/prisma/client";
 
-const connectionString = `${process.env.DATABASE_URL}`;
+const connectionString = process.env.DATABASE_URL;
 
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not set in environment variables");
+}
 
-export { prisma };
+// Global scope for Prisma instance to prevent multiple connections in dev
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+// Database Connection Pooling & SSL Configuration
+const poolConfig: PoolConfig = {
+  connectionString,
+  max: 10, // Default pool sizing, adjustable based on load/tier
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000, 
+  ssl: process.env.NODE_ENV === "production" 
+    ? { rejectUnauthorized: false } // Common for cloud DBs; adjust for strict CA compliance if needed
+    : undefined,
+};
+
+const pool = new Pool(poolConfig);
+const adapter = new PrismaPg(pool);
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter,
+    log:
+      process.env.NODE_ENV === "development"
+        ? ["query", "error", "warn"]
+        : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
