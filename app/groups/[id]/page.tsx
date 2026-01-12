@@ -10,8 +10,9 @@ import { ActivityItem } from "@/components/dashboard/ActivityItem"; // Reuse for
 // Actually ActivityItem is for Activity feed. We might need a generic ExpenseItem or reuse basic structure.
 // Let's create a specialized inline list for expenses.
 import { formatCurrency } from "@/lib/utils";
-import { Calendar, User as UserIcon } from "lucide-react";
-import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog"; // Can we reuse?
+import { Calendar, User as UserIcon, ArrowRight, Wallet } from "lucide-react";
+import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog"; 
+import { calculateGroupBalances } from "@/lib/services/balance";
 
 // Reuse AddExpenseDialog but we might need to pre-fill groupId. 
 // The current AddExpenseDialog doesn't accept groupId. We should update it or pass it via props?
@@ -58,6 +59,9 @@ export default async function GroupDetailPage({ params }: { params: { id: string
   // Calculate total group spend
   const totalSpend = group.expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
 
+  // Calculate debts
+  const debts = await calculateGroupBalances(params.id);
+
   return (
     <div className="space-y-8">
       {/* Header Banner */}
@@ -96,6 +100,12 @@ export default async function GroupDetailPage({ params }: { params: { id: string
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none py-3 px-1"
           >
             Expenses
+          </TabsTrigger>
+          <TabsTrigger 
+            value="balances" 
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none py-3 px-1"
+          >
+            Balances
           </TabsTrigger>
           <TabsTrigger 
             value="members"
@@ -147,6 +157,55 @@ export default async function GroupDetailPage({ params }: { params: { id: string
                  )}
               </CardContent>
            </Card>
+        </TabsContent>
+
+        <TabsContent value="balances" className="pt-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Group Balances</CardTitle>
+                    <CardDescription>Simplified view of who owes whom.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {debts.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                            <Wallet className="h-10 w-10 mb-2 opacity-20" />
+                            <p>Everyone is settled up!</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {debts.map((debt, i) => (
+                                <div key={i} className="flex items-center justify-between p-4 rounded-lg border bg-card/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex flex-col items-center">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={debt.fromUser?.imageUrl} />
+                                                <AvatarFallback>{debt.fromUser?.firstName?.[0]}</AvatarFallback>
+                                            </Avatar>
+                                            <span className="text-xs mt-1 font-medium">{debt.fromUser?.firstName}</span>
+                                        </div>
+                                        
+                                        <div className="flex flex-col items-center px-2 text-muted-foreground">
+                                            <span className="text-xs">owes</span>
+                                            <ArrowRight className="h-4 w-4 my-1" />
+                                        </div>
+
+                                        <div className="flex flex-col items-center">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={debt.toUser?.imageUrl} />
+                                                <AvatarFallback>{debt.toUser?.firstName?.[0]}</AvatarFallback>
+                                            </Avatar>
+                                            <span className="text-xs mt-1 font-medium">{debt.toUser?.firstName}</span>
+                                        </div>
+                                    </div>
+                                    <div className="font-bold text-red-600">
+                                        {formatCurrency(debt.amount)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </TabsContent>
 
         <TabsContent value="members" className="pt-6">
