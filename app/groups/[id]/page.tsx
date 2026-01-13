@@ -12,6 +12,7 @@ import { ActivityItem } from "@/components/dashboard/ActivityItem"; // Reuse for
 import { formatCurrency } from "@/lib/utils";
 import { Calendar, User as UserIcon, ArrowRight, Wallet } from "lucide-react";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog"; 
+import { SettleUpDialog } from "@/components/settlements/settle-up-dialog";
 import { calculateGroupBalances } from "@/lib/services/balance";
 
 // Reuse AddExpenseDialog but we might need to pre-fill groupId. 
@@ -87,7 +88,9 @@ export default async function GroupDetailPage({ params }: { params: { id: string
              <div className="flex flex-col items-end gap-2">
                  <div className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Total Spend</div>
                  <div className="text-3xl font-bold">{formatCurrency(totalSpend)}</div>
-                 {/* <Button size="sm">Settings</Button> */}
+                 <div className="flex gap-2">
+                    <SettleUpDialog userId={user.id} groupId={group.id} />
+                 </div>
              </div>
           </div>
         </div>
@@ -197,8 +200,18 @@ export default async function GroupDetailPage({ params }: { params: { id: string
                                             <span className="text-xs mt-1 font-medium">{debt.toUser?.firstName}</span>
                                         </div>
                                     </div>
-                                    <div className="font-bold text-red-600">
-                                        {formatCurrency(debt.amount)}
+                                    <div className="flex items-center gap-4">
+                                        <div className="font-bold text-red-600">
+                                            {formatCurrency(debt.amount)}
+                                        </div>
+                                        {/* If I am the one who owes, show Pay button */}
+                                        {debt.from === user.id && (
+                                            <SettleUpDialog 
+                                                userId={user.id} 
+                                                groupId={group.id} 
+                                                friendId={debt.to} 
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             ))}
