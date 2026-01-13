@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Users, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -27,7 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { FriendSelector } from "@/components/expenses/friend-selector";
+import { FriendSelector, User } from "@/components/expenses/friend-selector";
 import { createGroup } from "@/app/actions/group";
 
 // Define schema locally since we only need title here, validating logic on server is main source
@@ -41,7 +41,7 @@ interface CreateGroupDialogProps {
 
 export function CreateGroupDialog({ userId }: CreateGroupDialogProps) {
   const [open, setOpen] = useState(false);
-  const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
+  const [selectedFriends, setSelectedFriends] = useState<User[]>([]);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -76,7 +76,7 @@ export function CreateGroupDialog({ userId }: CreateGroupDialogProps) {
           router.push(`/groups/${result.data.id}`);
       }
 
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong");
     }
   }

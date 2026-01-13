@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, User, DollarSign, Tag, Trash2, Edit } from "lucide-react";
+import { Calendar, User, DollarSign, Tag } from "lucide-react";
 import Link from "next/link";
 import { EditExpenseDialog } from "@/components/expenses/edit-expense-dialog";
 import { DeleteExpenseButton } from "@/components/expenses/delete-expense-button";
@@ -27,6 +27,7 @@ export default async function ExpenseDetailPage({ params }: { params: { id: stri
           firstName: true,
           lastName: true,
           imageUrl: true,
+          email: true,
         },
       },
       createdByUser: {
@@ -44,6 +45,7 @@ export default async function ExpenseDetailPage({ params }: { params: { id: stri
               firstName: true,
               lastName: true,
               imageUrl: true,
+              email: true,
             },
           },
         },
@@ -96,7 +98,17 @@ export default async function ExpenseDetailPage({ params }: { params: { id: stri
         <div className="flex gap-2">
           {(isCreator || isPayer) && (
             <>
-              <EditExpenseDialog expense={expense} userId={user.id} />
+              <EditExpenseDialog 
+                expense={{
+                  ...expense,
+                  amount: Number(expense.amount),
+                  splits: expense.splits.map(s => ({
+                    ...s,
+                    amount: Number(s.amount)
+                  }))
+                }}
+                userId={user.id} 
+              />
               <DeleteExpenseButton expenseId={expense.id} />
             </>
           )}

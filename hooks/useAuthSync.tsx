@@ -12,6 +12,7 @@ export default function useAuthSync() {
   useEffect(() => {
     if (!isLoaded || !isSignedIn || didSync.current) return;
     didSync.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsSyncing(true);
     setSyncError(null);
 

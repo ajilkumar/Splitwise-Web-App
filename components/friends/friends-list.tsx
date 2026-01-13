@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Wallet } from "lucide-react";
+import { User } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { SettleUpDialog } from "@/components/settlements/settle-up-dialog";
 

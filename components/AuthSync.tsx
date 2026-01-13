@@ -2,7 +2,7 @@
 
 import useAuthSync from "@/hooks/useAuthSync";
 import { useEffect } from "react";
-import { toast } from "sonner";
+
 
 export default function AuthSync() {
   const { isSyncing, syncError } = useAuthSync();

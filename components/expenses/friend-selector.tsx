@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-interface User {
+export interface User {
   id: string;
   firstName: string | null;
   lastName: string | null;
@@ -31,10 +31,10 @@ interface User {
 interface FriendSelectorProps {
   onSelect: (users: User[]) => void;
   selectedUsers: User[];
-  currentUserId: string;
+  currentUserId?: string; // Optional or removed? Lint said unused.
 }
 
-export function FriendSelector({ onSelect, selectedUsers, currentUserId }: FriendSelectorProps) {
+export function FriendSelector({ onSelect, selectedUsers }: FriendSelectorProps) {
   const [open, setOpen] = React.useState(false);
   const [friends, setFriends] = React.useState<User[]>([]);
 

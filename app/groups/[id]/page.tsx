@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ActivityItem } from "@/components/dashboard/ActivityItem"; // Reuse for expenses list? 
+
 // Actually ActivityItem is for Activity feed. We might need a generic ExpenseItem or reuse basic structure.
 // Let's create a specialized inline list for expenses.
 import { formatCurrency } from "@/lib/utils";

@@ -1,0 +1,80 @@
+
+> splitwise@0.1.0 lint
+> eslint
+
+
+D:\Docs\My Projects\splitwise\app\global-error.tsx
+  4:10  warning  '_error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Docs\My Projects\splitwise\components\dashboard\ActivityItem.tsx
+  35:10  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+D:\Docs\My Projects\splitwise\components\dashboard\ActivityItem.tsx:35:10
+  33 |     <div className="flex items-start space-x-4 p-4 border-b last:border-0">
+  34 |       <div className="mt-1">
+> 35 |         <ActivityIcon className="h-5 w-5 text-muted-foreground" />
+     |          ^^^^^^^^^^^^ This component is created during render
+  36 |       </div>
+  37 |       <div className="flex-1 space-y-1">
+  38 |         <p className="text-sm font-medium leading-none">
+
+D:\Docs\My Projects\splitwise\components\dashboard\ActivityItem.tsx:27:38
+  25 |
+  26 | export function ActivityItem({ activity }: ActivityItemProps) {
+> 27 |   const ActivityIcon = useMemo(() => getActivityIcon(activity.type), [activity.type]);
+     |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ The component is created during render here
+  28 |   const timeAgo = formatDistanceToNow(new Date(activity.createdAt), {
+  29 |     addSuffix: true,
+  30 |   });  react-hooks/static-components
+
+D:\Docs\My Projects\splitwise\components\expenses\add-expense-dialog.tsx
+  69:18  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+D:\Docs\My Projects\splitwise\components\expenses\add-expense-dialog.tsx:69:18
+  67 |   }, [groupId, form]);
+  68 |
+> 69 |   const amount = form.watch("amount");
+     |                  ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  70 |   const splitType = form.watch("splitType");
+  71 |
+  72 |   const currentUser = useMemo(() => ({ id: userId, firstName: "You", lastName: "", imageUrl: null, email: "" }), [userId]);  react-hooks/incompatible-library
+
+D:\Docs\My Projects\splitwise\components\expenses\edit-expense-dialog.tsx
+   89:18  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+D:\Docs\My Projects\splitwise\components\expenses\edit-expense-dialog.tsx:89:18
+  87 |   }, [expense.id, friendsFromSplits]);
+  88 |
+> 89 |   const amount = form.watch("amount");
+     |                  ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  90 |   const splitType = form.watch("splitType");
+  91 |
+  92 |   const currentUser = useMemo(() => ({  react-hooks/incompatible-library
+  129:14  warning  '_error' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+
+D:\Docs\My Projects\splitwise\hooks\useAuthSync.tsx
+  15:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Docs\My Projects\splitwise\hooks\useAuthSync.tsx:15:5
+  13 |     if (!isLoaded || !isSignedIn || didSync.current) return;
+  14 |     didSync.current = true;
+> 15 |     setIsSyncing(true);
+     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  16 |     setSyncError(null);
+  17 |
+  18 |     fetch("/api/sync-current-user", { method: "POST", credentials: "include" })  react-hooks/set-state-in-effect
+
+✖ 6 problems (2 errors, 4 warnings)
+

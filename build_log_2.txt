@@ -1,0 +1,25 @@
+
+> splitwise@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   ▲ Next.js 16.0.3 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 24.2s
+   Running TypeScript ...
+Failed to compile.
+
+./app/api/settle/route.ts:28:26
+Type error: Property 'paidByUserId' does not exist on type '{ amount: number; date: Date; paidToUserId: string; groupId?: string | undefined; }'. Did you mean 'paidToUserId'?
+
+[0m [90m 26 |[39m     data[33m:[39m {
+ [90m 27 |[39m       amount[33m:[39m body[33m.[39mamount[33m,[39m
+[31m[1m>[22m[39m[90m 28 |[39m       paidByUserId[33m:[39m body[33m.[39mpaidByUserId[33m,[39m
+ [90m    |[39m                          [31m[1m^[22m[39m
+ [90m 29 |[39m       receivedByUserId[33m:[39m body[33m.[39mreceivedByUserId[33m,[39m
+ [90m 30 |[39m       groupId[33m:[39m body[33m.[39mgroupId[33m,[39m
+ [90m 31 |[39m       createdByUserId[33m:[39m user[33m.[39mid[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: null
