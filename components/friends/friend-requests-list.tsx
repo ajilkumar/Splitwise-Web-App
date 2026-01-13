@@ -43,7 +43,7 @@ export function FriendRequestsList({ requests }: FriendRequestsListProps) {
 
       toast.success(action === "accept" ? "Friend request accepted" : "Request declined");
       router.refresh(); // Refresh server components to update lists
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong");
     } finally {
       setLoadingId(null);

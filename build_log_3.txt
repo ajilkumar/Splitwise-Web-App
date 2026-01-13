@@ -1,0 +1,26 @@
+
+> splitwise@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   ▲ Next.js 16.0.3 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 20.6s
+   Running TypeScript ...
+Failed to compile.
+
+./app/dashboard/page.tsx:182:37
+Type error: Type '{ id: string; firstName: string | null; lastName: string | null; imageUrl: string | null; friendshipId: string; }[]' is not assignable to type 'Friend[]'.
+  Property 'email' is missing in type '{ id: string; firstName: string | null; lastName: string | null; imageUrl: string | null; friendshipId: string; }' but required in type 'Friend'.
+
+[0m [90m 180 |[39m             [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+ [90m 181 |[39m           }[33m>[39m
+[31m[1m>[22m[39m[90m 182 |[39m             [33m<[39m[33mDashboardFriendsWidget[39m friends[33m=[39m{friends} [33m/[39m[33m>[39m
+ [90m     |[39m                                     [31m[1m^[22m[39m
+ [90m 183 |[39m           [33m<[39m[33m/[39m[33mSuspense[39m[33m>[39m
+ [90m 184 |[39m         [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+ [90m 185 |[39m       [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m[0m
+Next.js build worker exited with code: 1 and signal: null

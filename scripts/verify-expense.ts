@@ -1,6 +1,6 @@
 
 import { PrismaClient } from '@prisma/client';
-import { createExpense } from '../app/actions/expense';
+
 
 const prisma = new PrismaClient();
 

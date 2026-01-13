@@ -1,6 +1,7 @@
 import { Activity } from "@/lib/generated/prisma/client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { formatDistanceToNow } from "date-fns";
+import { useMemo } from "react";
 import {
   Banknote,
   UserPlus,
@@ -23,7 +24,7 @@ interface ActivityItemProps {
 }
 
 export function ActivityItem({ activity }: ActivityItemProps) {
-  const Icon = getActivityIcon(activity.type);
+  const ActivityIcon = useMemo(() => getActivityIcon(activity.type), [activity.type]);
   const timeAgo = formatDistanceToNow(new Date(activity.createdAt), {
     addSuffix: true,
   });
@@ -31,7 +32,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
   return (
     <div className="flex items-start space-x-4 p-4 border-b last:border-0">
       <div className="mt-1">
-        <Icon className="h-5 w-5 text-muted-foreground" />
+        <ActivityIcon className="h-5 w-5 text-muted-foreground" />
       </div>
       <div className="flex-1 space-y-1">
         <p className="text-sm font-medium leading-none">

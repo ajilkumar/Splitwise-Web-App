@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { createSettlement } from "@/app/actions/settlement";
 import { createSettlementSchema, CreateSettlementInput } from "@/lib/validations/settlement";
-import { FriendSelector } from "@/components/expenses/friend-selector";
+import { FriendSelector, User } from "@/components/expenses/friend-selector";
 
 interface SettleUpDialogProps {
   userId: string;
@@ -41,10 +41,11 @@ export function SettleUpDialog({ userId, groupId, friendId }: SettleUpDialogProp
   // We use the same selector logic but enforce single selection for settlement ideally?
   // Or just pick one from the list. The schema expects a single string `paidToUserId`.
   // Our FriendSelector returns array. We'll take the first one.
-  const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
+  const [selectedFriends, setSelectedFriends] = useState<User[]>([]);
 
   // Explicitly cast resolver to avoid generic mismatch between Zod schema and RHF strict types
   const form = useForm<CreateSettlementInput>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(createSettlementSchema) as any,
     defaultValues: {
       amount: 0,
@@ -100,7 +101,7 @@ export function SettleUpDialog({ userId, groupId, friendId }: SettleUpDialogProp
             <div className="space-y-2">
                 <FormLabel>Who did you pay?</FormLabel>
                 <FriendSelector 
-                    currentUserId={userId}
+                // currentUserId={userId} // Removed prop
                     selectedUsers={selectedFriends} 
                     onSelect={(users) => {
                         // Enforce single selection style behavior or just take last

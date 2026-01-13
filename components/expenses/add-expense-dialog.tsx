@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod"; // Add zod import if needed for types
+
 
 import { Button } from "@/components/ui/button";
 import {
@@ -42,11 +42,11 @@ interface AddExpenseDialogProps {
 
 export function AddExpenseDialog({ userId, groupId }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
-  // Using 'any' for friend objects to avoid strict implementation detail dependency here
-  const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
+  const [selectedFriends, setSelectedFriends] = useState<{ id: string; firstName: string | null; lastName: string | null; imageUrl: string | null; email: string }[]>([]);
   
   // Explicitly cast resolver to avoiding deep generic mismatch with z.coerce
   const form = useForm<CreateExpenseInput>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(createExpenseSchema) as any,
     defaultValues: {
       description: "",
@@ -69,8 +69,8 @@ export function AddExpenseDialog({ userId, groupId }: AddExpenseDialogProps) {
   const amount = form.watch("amount");
   const splitType = form.watch("splitType");
 
-  const currentUser = { id: userId, firstName: "You", lastName: "", imageUrl: null, email: "" };
-  const allParticipants = [currentUser, ...selectedFriends];
+  const currentUser = useMemo(() => ({ id: userId, firstName: "You", lastName: "", imageUrl: null, email: "" }), [userId]);
+  const allParticipants = useMemo(() => [currentUser, ...selectedFriends], [currentUser, selectedFriends]);
 
   // Auto-update splits when participants or amount change (for EQUAL default)
   useEffect(() => {
@@ -79,7 +79,7 @@ export function AddExpenseDialog({ userId, groupId }: AddExpenseDialogProps) {
        const splits = allParticipants.map(u => ({ userId: u.id, amount: splitAmount }));
        form.setValue("splits", splits);
     }
-  }, [amount, selectedFriends.length, splitType, form, allParticipants.length]); // added allParticipants.length
+  }, [amount, splitType, form, allParticipants]);
 
   async function onSubmit(data: CreateExpenseInput) {
     try {
@@ -105,7 +105,7 @@ export function AddExpenseDialog({ userId, groupId }: AddExpenseDialogProps) {
         });
         setSelectedFriends([]);
       }
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong");
     }
   }

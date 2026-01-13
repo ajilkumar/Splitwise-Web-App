@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit } from "lucide-react";
@@ -58,14 +58,15 @@ interface EditExpenseDialogProps {
 
 export function EditExpenseDialog({ expense, userId }: EditExpenseDialogProps) {
   const [open, setOpen] = useState(false);
-  const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
+  const [selectedFriends, setSelectedFriends] = useState<{ id: string; firstName: string | null; lastName: string | null; imageUrl: string | null; email: string }[]>([]);
 
   // Get friends from splits (excluding current user)
-  const friendsFromSplits = expense.splits
+  const friendsFromSplits = useMemo(() => expense.splits
     .filter((split) => split.userId !== userId)
-    .map((split) => split.user);
+    .map((split) => split.user), [expense.splits, userId]);
 
   const form = useForm<CreateExpenseInput>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(createExpenseSchema) as any,
     defaultValues: {
       description: expense.description,
@@ -83,19 +84,19 @@ export function EditExpenseDialog({ expense, userId }: EditExpenseDialogProps) {
 
   useEffect(() => {
     setSelectedFriends(friendsFromSplits);
-  }, [expense.id]);
+  }, [expense.id, friendsFromSplits]);
 
   const amount = form.watch("amount");
   const splitType = form.watch("splitType");
 
-  const currentUser = {
+  const currentUser = useMemo(() => ({
     id: userId,
     firstName: "You",
     lastName: "",
     imageUrl: null,
     email: "",
-  };
-  const allParticipants = [currentUser, ...selectedFriends];
+  }), [userId]);
+  const allParticipants = useMemo(() => [currentUser, ...selectedFriends], [currentUser, selectedFriends]);
 
   useEffect(() => {
     if (splitType === "EQUAL" && amount > 0) {
@@ -106,7 +107,7 @@ export function EditExpenseDialog({ expense, userId }: EditExpenseDialogProps) {
       }));
       form.setValue("splits", splits);
     }
-  }, [amount, selectedFriends.length, splitType, form, allParticipants.length]);
+  }, [amount, splitType, form, allParticipants]);
 
   async function onSubmit(data: CreateExpenseInput) {
     try {
@@ -125,7 +126,7 @@ export function EditExpenseDialog({ expense, userId }: EditExpenseDialogProps) {
         toast.success("Expense updated!");
         setOpen(false);
       }
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong");
     }
   }
@@ -196,7 +197,6 @@ export function EditExpenseDialog({ expense, userId }: EditExpenseDialogProps) {
             <div className="space-y-2">
               <FormLabel>With whom?</FormLabel>
               <FriendSelector
-                currentUserId={userId}
                 selectedUsers={selectedFriends}
                 onSelect={setSelectedFriends}
               />

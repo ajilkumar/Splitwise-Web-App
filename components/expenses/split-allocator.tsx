@@ -3,19 +3,17 @@
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 
-interface User {
+export interface User {
   id: string;
   firstName: string | null;
   lastName: string | null;
   imageUrl: string | null;
 }
 
-interface SplitItem {
+export interface SplitItem {
   userId: string;
   amount: number;
 }
@@ -47,78 +45,84 @@ export function SplitAllocator({ amount, users, splitType, onChange }: SplitAllo
     );
   };
 
-  // Reset or Recalculate when type or amount changes
+  const [prevProps, setPrevProps] = useState({ amount, splitType, userCount: users.length });
+
+  // Calculate defaults
+  const calculateValues = () => {
+     const newValues: Record<string, number> = {};
+     if (splitType === "SHARES") {
+        users.forEach(u => newValues[u.id] = 1);
+     } else {
+        // PERCENTAGE or EXACT
+        users.forEach(u => {
+           if (splitType === "PERCENTAGE") newValues[u.id] = 100 / users.length;
+           else newValues[u.id] = amount / users.length;
+        });
+     }
+     return newValues;
+  };
+
+  if (prevProps.amount !== amount || prevProps.splitType !== splitType || prevProps.userCount !== users.length) {
+    setPrevProps({ amount, splitType, userCount: users.length });
+    // Reset values logic
+    if (splitType === "EQUAL") {
+       setValues({});
+    } else {
+       setValues(calculateValues());
+    }
+  }
+
+  // Effect only for calculating splits and calling onChange (no setState)
   useEffect(() => {
     if (splitType === "EQUAL") {
-      const splitAmount = amount / users.length;
-      // Handle rounding: distribute remainder to largest split
-      const baseAmount = Math.floor((splitAmount * 100)) / 100;
-      const remainder = amount - (baseAmount * users.length);
-      
-      const newSplits = users.map((u, index) => ({
-        userId: u.id,
-        amount: index === 0 ? baseAmount + remainder : baseAmount
-      }));
-      
-      onChange(newSplits);
-      // Reset values for EQUAL split
-      setValues({});
-    } else if (splitType === "SHARES") {
-      // Initialize with equal shares
-      const shareValue = 1;
-      const newValues: Record<string, number> = {};
-      users.forEach(u => {
-        newValues[u.id] = shareValue;
-      });
-      setValues(newValues);
-      
-      // Calculate amounts based on shares
-      const totalShares = users.length * shareValue;
-      const newSplits = users.map(u => ({
-        userId: u.id,
-        amount: (amount * newValues[u.id]) / totalShares
-      }));
-      
-      const adjustedSplits = distributeRemainder(newSplits, 
-        newSplits.reduce((sum, s) => sum + s.amount, 0), 
-        amount
-      );
-      onChange(adjustedSplits);
+       const splitAmount = amount / users.length;
+       const baseAmount = Math.floor((splitAmount * 100)) / 100;
+       const remainder = amount - (baseAmount * users.length);
+       const newSplits = users.map((u, index) => ({
+         userId: u.id,
+         amount: index === 0 ? baseAmount + remainder : baseAmount
+       }));
+       onChange(newSplits);
     } else {
-      // Initialize values map for EXACT and PERCENTAGE
-      const newValues: Record<string, number> = {};
-      users.forEach(u => {
-        if (splitType === "PERCENTAGE") {
-          newValues[u.id] = 100 / users.length; // Equal percentage
-        } else {
-          newValues[u.id] = amount / users.length; // Equal exact amount
-        }
-      });
-      setValues(newValues);
-      
-      if (splitType === "EXACT") {
-        const newSplits = users.map(u => ({
-          userId: u.id,
-          amount: newValues[u.id] || 0
-        }));
-        const adjustedSplits = distributeRemainder(newSplits,
-          newSplits.reduce((sum, s) => sum + s.amount, 0),
-          amount
-        );
-        onChange(adjustedSplits);
-      } else if (splitType === "PERCENTAGE") {
-        const newSplits = users.map(u => ({
-          userId: u.id,
-          amount: (amount * newValues[u.id]) / 100
-        }));
-        const adjustedSplits = distributeRemainder(newSplits,
-          newSplits.reduce((sum, s) => sum + s.amount, 0),
-          amount
-        );
-        onChange(adjustedSplits);
-      }
+       // Calculation depends on 'values'.
+       // Note: 'values' here will be the stale one from closure if we didn't update it?
+       // Wait, if we setValues during render, the component re-renders IMMEDIATELY.
+       // The Effect runs AFTER the re-render.
+       // So 'values' in this effect will be the NEW values.
+       
+       let newSplits: SplitItem[] = [];
+       if (splitType === "SHARES") {
+          // const shareValue = 1; // Unused
+          // If we just reset, values are 1.
+          
+          const totalShares = users.reduce((sum, u) => sum + (values[u.id] || 0), 0);
+          if (totalShares > 0) {
+             newSplits = users.map(u => ({
+                userId: u.id,
+                amount: (amount * (values[u.id] || 0)) / totalShares
+             }));
+          } else {
+             newSplits = users.map(u => ({ userId: u.id, amount: 0 }));
+          }
+       } else if (splitType === "PERCENTAGE") {
+          newSplits = users.map(u => ({
+            userId: u.id,
+            amount: (amount * (values[u.id] || 0)) / 100
+          }));
+       } else if (splitType === "EXACT") {
+          newSplits = users.map(u => ({
+            userId: u.id,
+            amount: values[u.id] || 0
+          }));
+       }
+       
+       if (newSplits.length > 0) {
+          const total = newSplits.reduce((sum, s) => sum + s.amount, 0);
+          const adjustedSplits = distributeRemainder(newSplits, total, amount);
+          onChange(adjustedSplits);
+       }
     }
-  }, [amount, users.length, splitType, users, onChange]);
+  }, [amount, users, splitType, values, onChange]); // Added values to deps
 
   const handleInputChange = (userId: string, val: string) => {
     const num = parseFloat(val) || 0;

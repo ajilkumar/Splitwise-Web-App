@@ -25,8 +25,8 @@ export const POST = apiHandler(async (req: Request) => {
   const settlement = await prisma.settlement.create({
     data: {
       amount: body.amount,
-      paidByUserId: body.paidByUserId,
-      receivedByUserId: body.receivedByUserId,
+      paidByUserId: user.id,
+      receivedByUserId: body.paidToUserId,
       groupId: body.groupId,
       createdByUserId: user.id,
       date: body.date || new Date(),
