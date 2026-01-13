@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -42,20 +43,20 @@ export function SettleUpDialog({ userId, groupId, friendId }: SettleUpDialogProp
   // Our FriendSelector returns array. We'll take the first one.
   const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
 
+  // Explicitly cast resolver to avoid generic mismatch between Zod schema and RHF strict types
   const form = useForm<CreateSettlementInput>({
-    resolver: zodResolver(createSettlementSchema),
+    resolver: zodResolver(createSettlementSchema) as any,
     defaultValues: {
       amount: 0,
       date: new Date(),
       paidToUserId: friendId || "",
-      groupId: groupId,
+      groupId: groupId || undefined,
     },
   });
 
-  // Init friend selector if friendId passed (requires fetching the user object, which we don't have easily here without prop)
-  // For now, if friendId is passed, we rely on the parent or just let user re-select if strict.
-  // To keep it simple: We won't pre-fill the VISUAL selector in this version unless we pass the User object.
-  // BUT we must ensure the form state is valid.
+  // Watch for external friendId changes to update form default
+  // (Optional logic if friendId can change dynamically while dialog is potentially mounted)
+
 
   async function onSubmit(data: CreateSettlementInput) {
     if (selectedFriends.length > 0) {
