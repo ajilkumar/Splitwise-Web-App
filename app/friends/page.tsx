@@ -23,15 +23,34 @@ export default async function FriendsPage() {
     redirect("/");
   }
 
-  // 1. Fetch Accepted Friends
+  // 1. Fetch Accepted Friends (optimized query)
   const friendships = await prisma.friendship.findMany({
     where: {
       status: "ACCEPTED",
       OR: [{ requesterId: user.id }, { addresseeId: user.id }],
     },
-    include: {
-      requester: true,
-      addressee: true,
+    select: {
+      id: true,
+      requesterId: true,
+      addresseeId: true,
+      requester: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          imageUrl: true,
+        },
+      },
+      addressee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          imageUrl: true,
+        },
+      },
     },
   });
 
@@ -48,13 +67,17 @@ export default async function FriendsPage() {
     };
   }));
 
-  // 2. Fetch Pending Requests
+  // 2. Fetch Pending Requests (optimized query)
   const pendingRequests = await prisma.friendship.findMany({
     where: {
       status: "PENDING",
       addresseeId: user.id, // Only requests RECEIVED
     },
-    include: {
+    select: {
+      id: true,
+      requesterId: true,
+      addresseeId: true,
+      createdAt: true,
       requester: {
         select: {
           id: true,
@@ -65,6 +88,10 @@ export default async function FriendsPage() {
         },
       },
     },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 20, // Limit pending requests
   });
 
   // Transform for client component
@@ -103,8 +130,7 @@ export default async function FriendsPage() {
               <CardDescription>People you share expenses with.</CardDescription>
             </CardHeader>
             <CardContent>
-              {/* @ts-ignore - We are extending the friend type on the fly */}
-              <FriendsList friends={friends} />
+              <FriendsList friends={friends} currentUserId={user.id} />
             </CardContent>
           </Card>
         </TabsContent>

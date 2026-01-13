@@ -1,7 +1,7 @@
 import Header from "@/components/header";
 import { ErrorBoundary } from "@/components/error-boundary";
 
-export default function DashboardLayout({
+export default function ExpenseLayout({
   children,
 }: {
   children: React.ReactNode;

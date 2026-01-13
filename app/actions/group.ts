@@ -71,6 +71,7 @@ export async function createGroup(data: CreateGroupInput) {
 
     revalidatePath("/groups");
     revalidatePath("/dashboard");
+    revalidatePath("/friends");
     
     return { data: group };
   } catch (error) {

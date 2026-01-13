@@ -17,9 +17,10 @@ interface Friend {
 
 interface FriendsListProps {
   friends: Friend[];
+  currentUserId: string;
 }
 
-export function FriendsList({ friends }: FriendsListProps) {
+export function FriendsList({ friends, currentUserId }: FriendsListProps) {
   if (friends.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
@@ -61,7 +62,9 @@ export function FriendsList({ friends }: FriendsListProps) {
                     <span className="text-muted-foreground text-xs">Settled up</span>
                 )}
              </div>
-             {/* If we had UserId we could add Settle Up button here easily */}
+             {friend.balance !== undefined && friend.balance !== 0 && (
+               <SettleUpDialog userId={currentUserId} friendId={friend.id} />
+             )}
           </div>
         </div>
       ))}

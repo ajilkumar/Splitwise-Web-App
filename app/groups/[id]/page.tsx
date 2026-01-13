@@ -14,6 +14,7 @@ import { Calendar, User as UserIcon, ArrowRight, Wallet } from "lucide-react";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog"; 
 import { SettleUpDialog } from "@/components/settlements/settle-up-dialog";
 import { calculateGroupBalances } from "@/lib/services/balance";
+import Link from "next/link";
 
 // Reuse AddExpenseDialog but we might need to pre-fill groupId. 
 // The current AddExpenseDialog doesn't accept groupId. We should update it or pass it via props?
@@ -29,20 +30,63 @@ export default async function GroupDetailPage({ params }: { params: { id: string
 
   const group = await prisma.group.findUnique({
     where: { id: params.id },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      currency: true,
+      createdAt: true,
       members: {
-        include: {
-          user: true,
+        select: {
+          id: true,
+          userId: true,
+          role: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              imageUrl: true,
+              email: true,
+            },
+          },
         },
       },
       expenses: {
-        include: {
-          paidByUser: true,
+        select: {
+          id: true,
+          description: true,
+          amount: true,
+          category: true,
+          date: true,
+          splitType: true,
+          paidByUser: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              imageUrl: true,
+            },
+          },
           splits: {
-             include: { user: true }
-          }
+            select: {
+              id: true,
+              userId: true,
+              amount: true,
+              paid: true,
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  imageUrl: true,
+                },
+              },
+            },
+          },
         },
-        orderBy: { date: 'desc' }
+        orderBy: { date: 'desc' },
+        take: 50, // Limit expenses to prevent large queries
       },
     },
   });
@@ -135,26 +179,28 @@ export default async function GroupDetailPage({ params }: { params: { id: string
                  ) : (
                     <div className="space-y-6">
                        {group.expenses.map(expense => (
-                          <div key={expense.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                             <div className="flex items-start gap-4">
-                                <div className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-muted text-xs font-medium text-muted-foreground">
-                                   <span>{expense.date.toLocaleString('default', { month: 'short' })}</span>
-                                   <span className="text-lg text-foreground">{expense.date.getDate()}</span>
-                                </div>
-                                <div className="space-y-1">
-                                   <p className="font-medium text-base">{expense.description}</p>
-                                   <p className="text-sm text-muted-foreground">
-                                      Paid by <span className="font-medium text-foreground">{expense.paidByUser.firstName}</span>
-                                   </p>
-                                </div>
-                             </div>
-                             <div className="text-right">
-                                <div className="font-bold text-lg">{formatCurrency(Number(expense.amount))}</div>
-                                <div className="text-xs text-muted-foreground">
-                                   {expense.splits.length} people involved
-                                </div>
-                             </div>
-                          </div>
+                          <Link key={expense.id} href={`/expenses/${expense.id}`} className="block">
+                            <div className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0 hover:bg-muted/50 p-2 rounded transition-colors cursor-pointer">
+                               <div className="flex items-start gap-4">
+                                  <div className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-muted text-xs font-medium text-muted-foreground">
+                                     <span>{expense.date.toLocaleString('default', { month: 'short' })}</span>
+                                     <span className="text-lg text-foreground">{expense.date.getDate()}</span>
+                                  </div>
+                                  <div className="space-y-1">
+                                     <p className="font-medium text-base">{expense.description}</p>
+                                     <p className="text-sm text-muted-foreground">
+                                        Paid by <span className="font-medium text-foreground">{expense.paidByUser.firstName}</span>
+                                     </p>
+                                  </div>
+                               </div>
+                               <div className="text-right">
+                                  <div className="font-bold text-lg">{formatCurrency(Number(expense.amount))}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                     {expense.splits.length} people involved
+                                  </div>
+                               </div>
+                            </div>
+                          </Link>
                        ))}
                     </div>
                  )}

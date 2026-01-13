@@ -22,21 +22,37 @@ export default async function GroupsPage() {
     redirect("/");
   }
 
-  // Fetch groups
+  // Fetch groups (optimized query)
   const groupMemberships = await prisma.groupMember.findMany({
     where: { userId: user.id },
-    include: {
+    select: {
+      id: true,
+      joinedAt: true,
       group: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          currency: true,
+          createdAt: true,
           members: {
-            include: {
-              user: true,
+            select: {
+              id: true,
+              userId: true,
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  imageUrl: true,
+                },
+              },
             },
             take: 5, // Show first 5 members avatars
           },
           _count: {
-             select: { members: true }
-          }
+            select: { members: true },
+          },
         },
       },
     },
