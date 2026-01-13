@@ -82,13 +82,23 @@ export async function createSettlement(data: CreateSettlementInput) {
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/groups");
-    if (groupId) {
-      revalidatePath(`/groups/${groupId}`);
-    }
     revalidatePath("/friends");
-    
-    return { data: settlement };
+    if (settlement.groupId) {
+      revalidatePath(`/groups/${settlement.groupId}`);
+    }
+
+    // Serialize Decimal fields to numbers for client components
+    return {
+      success: true,
+      settlement: {
+        ...settlement,
+        amount: Number(settlement.amount),
+        receivedByUser: settlement.receivedByUser ? {
+          ...settlement.receivedByUser,
+          totalBalance: Number(settlement.receivedByUser.totalBalance)
+        } : undefined
+      }
+    };
   } catch (error) {
     console.error("Failed to create settlement:", error);
     return { error: "Failed to record settlement" };

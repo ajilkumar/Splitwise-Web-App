@@ -103,7 +103,15 @@ export async function createExpense(data: CreateExpenseInput) {
       revalidatePath(`/groups/${expense.groupId}`);
     }
     revalidatePath("/groups");
-    return { success: true, expense };
+    
+    // Serialize Decimal fields to numbers for client components
+    return { 
+      success: true, 
+      expense: {
+        ...expense,
+        amount: Number(expense.amount)
+      }
+    };
   } catch (error) {
     console.error("Failed to create expense:", error);
     return { error: "Failed to create expense" };
@@ -238,7 +246,15 @@ export async function updateExpense(expenseId: string, data: CreateExpenseInput)
     }
     revalidatePath("/groups");
     revalidatePath(`/expenses/${expenseId}`);
-    return { success: true, expense };
+    
+    // Serialize Decimal fields to numbers for client components
+    return { 
+      success: true, 
+      expense: {
+        ...expense,
+        amount: Number(expense.amount)
+      }
+    };
   } catch (error) {
     console.error("Failed to update expense:", error);
     return { error: "Failed to update expense" };
