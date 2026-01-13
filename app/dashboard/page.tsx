@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { prisma } from "@/lib/prisma";
 import { getDashboardMetrics } from "@/lib/services/dashboard";
@@ -63,15 +64,29 @@ export default async function DashboardPage() {
     take: 20,
   });
 
-  // Fetch Friends for Widget
+  // Fetch Friends for Widget (optimized query)
   const friendships = await prisma.friendship.findMany({
     where: {
       status: "ACCEPTED",
       OR: [{ requesterId: user.id }, { addresseeId: user.id }],
     },
     include: {
-      requester: true,
-      addressee: true,
+      requester: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          imageUrl: true,
+        },
+      },
+      addressee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          imageUrl: true,
+        },
+      },
     },
     take: 5,
   });
@@ -127,11 +142,45 @@ export default async function DashboardPage() {
 
       {/* Main Content Area */}
       <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-4">
-        <ActivityList activities={activities} />
+        <Suspense fallback={
+          <div className="lg:col-span-3 space-y-4">
+            <div className="h-6 w-32 bg-muted animate-pulse rounded" />
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                  <div className="h-10 w-10 bg-muted animate-pulse rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
+                    <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        }>
+          <ActivityList activities={activities} />
+        </Suspense>
         
         {/* Placeholder for future Quick Actions or charts */}
         <div className="hidden lg:block lg:col-span-1 space-y-4">
+          <Suspense fallback={
+            <div className="space-y-4">
+              <div className="h-6 w-24 bg-muted animate-pulse rounded" />
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 border rounded-lg">
+                    <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
+                    <div className="flex-1 space-y-1">
+                      <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                      <div className="h-3 w-16 bg-muted animate-pulse rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          }>
             <DashboardFriendsWidget friends={friends} />
+          </Suspense>
         </div>
       </div>
     </div>

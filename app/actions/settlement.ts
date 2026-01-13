@@ -83,7 +83,10 @@ export async function createSettlement(data: CreateSettlementInput) {
 
     revalidatePath("/dashboard");
     revalidatePath("/groups");
-    revalidatePath(`/groups/${groupId}`);
+    if (groupId) {
+      revalidatePath(`/groups/${groupId}`);
+    }
+    revalidatePath("/friends");
     
     return { data: settlement };
   } catch (error) {

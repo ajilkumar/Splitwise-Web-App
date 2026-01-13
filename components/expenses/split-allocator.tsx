@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
 
 interface User {
   id: string;
@@ -30,16 +31,92 @@ interface SplitAllocatorProps {
 export function SplitAllocator({ amount, users, splitType, onChange }: SplitAllocatorProps) {
   const [values, setValues] = useState<Record<string, number>>({});
 
+  // Helper function to distribute rounding errors to the largest split
+  const distributeRemainder = (splits: SplitItem[], total: number, targetTotal: number): SplitItem[] => {
+    const remainder = targetTotal - total;
+    if (Math.abs(remainder) < 0.01) return splits; // No rounding needed
+    
+    // Find the largest split and add the remainder to it
+    const sortedSplits = [...splits].sort((a, b) => b.amount - a.amount);
+    const largestSplit = sortedSplits[0];
+    
+    return splits.map(split => 
+      split.userId === largestSplit.userId
+        ? { ...split, amount: split.amount + remainder }
+        : split
+    );
+  };
+
   // Reset or Recalculate when type or amount changes
   useEffect(() => {
     if (splitType === "EQUAL") {
       const splitAmount = amount / users.length;
-      const newSplits = users.map(u => ({ userId: u.id, amount: splitAmount }));
+      // Handle rounding: distribute remainder to largest split
+      const baseAmount = Math.floor((splitAmount * 100)) / 100;
+      const remainder = amount - (baseAmount * users.length);
+      
+      const newSplits = users.map((u, index) => ({
+        userId: u.id,
+        amount: index === 0 ? baseAmount + remainder : baseAmount
+      }));
+      
       onChange(newSplits);
+      // Reset values for EQUAL split
+      setValues({});
+    } else if (splitType === "SHARES") {
+      // Initialize with equal shares
+      const shareValue = 1;
+      const newValues: Record<string, number> = {};
+      users.forEach(u => {
+        newValues[u.id] = shareValue;
+      });
+      setValues(newValues);
+      
+      // Calculate amounts based on shares
+      const totalShares = users.length * shareValue;
+      const newSplits = users.map(u => ({
+        userId: u.id,
+        amount: (amount * newValues[u.id]) / totalShares
+      }));
+      
+      const adjustedSplits = distributeRemainder(newSplits, 
+        newSplits.reduce((sum, s) => sum + s.amount, 0), 
+        amount
+      );
+      onChange(adjustedSplits);
     } else {
-        // Initialize values map for other types if empty
-        // We generally don't auto-calculate for exact/percentage unless we want to distribute remainder?
-        // For now, let user input.
+      // Initialize values map for EXACT and PERCENTAGE
+      const newValues: Record<string, number> = {};
+      users.forEach(u => {
+        if (splitType === "PERCENTAGE") {
+          newValues[u.id] = 100 / users.length; // Equal percentage
+        } else {
+          newValues[u.id] = amount / users.length; // Equal exact amount
+        }
+      });
+      setValues(newValues);
+      
+      if (splitType === "EXACT") {
+        const newSplits = users.map(u => ({
+          userId: u.id,
+          amount: newValues[u.id] || 0
+        }));
+        const adjustedSplits = distributeRemainder(newSplits,
+          newSplits.reduce((sum, s) => sum + s.amount, 0),
+          amount
+        );
+        onChange(adjustedSplits);
+      } else if (splitType === "PERCENTAGE") {
+        const newSplits = users.map(u => ({
+          userId: u.id,
+          amount: (amount * newValues[u.id]) / 100
+        }));
+        const adjustedSplits = distributeRemainder(newSplits,
+          newSplits.reduce((sum, s) => sum + s.amount, 0),
+          amount
+        );
+        onChange(adjustedSplits);
+      }
     }
   }, [amount, users.length, splitType, users, onChange]);
 
@@ -48,10 +125,39 @@ export function SplitAllocator({ amount, users, splitType, onChange }: SplitAllo
     const newValues = { ...values, [userId]: num };
     setValues(newValues);
 
-    const newSplits = users.map(u => ({
+    let newSplits: SplitItem[];
+    
+    if (splitType === "PERCENTAGE") {
+      // Convert percentage to amount
+      newSplits = users.map(u => ({
+        userId: u.id,
+        amount: (amount * (newValues[u.id] || 0)) / 100
+      }));
+    } else if (splitType === "SHARES") {
+      // Convert shares to amount
+      const totalShares = users.reduce((sum, u) => sum + (newValues[u.id] || 0), 0);
+      if (totalShares > 0) {
+        newSplits = users.map(u => ({
+          userId: u.id,
+          amount: (amount * (newValues[u.id] || 0)) / totalShares
+        }));
+      } else {
+        newSplits = users.map(u => ({ userId: u.id, amount: 0 }));
+      }
+    } else {
+      // EXACT split
+      newSplits = users.map(u => ({
         userId: u.id,
         amount: newValues[u.id] || 0
-    }));
+      }));
+    }
+    
+    // Distribute remainder for EXACT and SHARES
+    if (splitType === "EXACT" || splitType === "SHARES") {
+      const total = newSplits.reduce((sum, s) => sum + s.amount, 0);
+      newSplits = distributeRemainder(newSplits, total, amount);
+    }
+    
     onChange(newSplits);
   };
 
@@ -67,12 +173,12 @@ export function SplitAllocator({ amount, users, splitType, onChange }: SplitAllo
                       </Avatar>
                       {u.firstName}
                       <span className="ml-1 font-bold">
-                        ${(amount / users.length).toFixed(2)}
+                        {formatCurrency(amount / users.length)}
                       </span>
                   </Badge>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground w-full text-center">= ${amount.toFixed(2)} total</p>
+            <p className="text-xs text-muted-foreground w-full text-center">= {formatCurrency(amount)} total</p>
           </div>
       )
   }
@@ -101,9 +207,57 @@ export function SplitAllocator({ amount, users, splitType, onChange }: SplitAllo
             </div>
         </div>
       ))}
-      <div className="text-right text-xs text-muted-foreground">
-          {splitType === "PERCENTAGE" && "Total: " + Object.values(values).reduce((a, b) => a + b, 0) + "%"}
-          {splitType === "EXACT" && "Total: $" + Object.values(values).reduce((a, b) => a + b, 0).toFixed(2) + " / " + amount}
+      <div className="text-right text-xs space-y-1">
+          {splitType === "PERCENTAGE" && (() => {
+            const totalPercent = Object.values(values).reduce((a, b) => a + b, 0);
+            const isValid = Math.abs(totalPercent - 100) < 0.01;
+            return (
+              <div>
+                <span className={isValid ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                  Total: {totalPercent.toFixed(2)}% / 100%
+                </span>
+                {!isValid && (
+                  <p className="text-red-500 text-[10px] mt-1">
+                    {totalPercent < 100 ? "Add " + (100 - totalPercent).toFixed(2) + "%" : "Reduce by " + (totalPercent - 100).toFixed(2) + "%"}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+          {splitType === "EXACT" && (() => {
+            const totalAmount = Object.values(values).reduce((a, b) => a + b, 0);
+            const isValid = Math.abs(totalAmount - amount) < 0.01;
+            return (
+              <div>
+                <span className={isValid ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                  Total: {formatCurrency(totalAmount)} / {formatCurrency(amount)}
+                </span>
+                {!isValid && (
+                  <p className="text-red-500 text-[10px] mt-1">
+                    {totalAmount < amount 
+                      ? "Add " + formatCurrency(amount - totalAmount) 
+                      : "Reduce by " + formatCurrency(totalAmount - amount)}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+          {splitType === "SHARES" && (() => {
+            const totalShares = Object.values(values).reduce((a, b) => a + b, 0);
+            const isValid = totalShares > 0;
+            return (
+              <div>
+                <span className={isValid ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                  Total shares: {totalShares.toFixed(2)}
+                </span>
+                {!isValid && (
+                  <p className="text-red-500 text-[10px] mt-1">
+                    At least one share must be greater than 0
+                  </p>
+                )}
+              </div>
+            );
+          })()}
       </div>
     </div>
   );
